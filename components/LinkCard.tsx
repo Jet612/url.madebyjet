@@ -42,7 +42,7 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, onDelete, onVisit }) => {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="text-xl font-mono font-semibold text-brand-300 truncate tracking-tight">
-              /{link.alias || link.shortCode}
+              <span className="text-slate-500">url.madebyjet.dev/</span>{link.alias || link.shortCode}
             </h3>
           </div>
 
