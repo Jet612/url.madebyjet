@@ -6,6 +6,9 @@ import { dark } from '@clerk/themes'
 export const metadata: Metadata = {
   title: 'JetShort - URL Shortener',
   description: 'A modern URL shortener for creating short, memorable links.',
+  icons: {
+    icon: 'https://madebyjet.dev/favicon.png',
+  },
 }
 
 export default function RootLayout({
