@@ -14,7 +14,7 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, onDelete, onVisit }) => {
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
 
-  const displayUrl = `url.madebyjet.dev/${link.alias || link.shortCode}`;
+  const displayUrl = `https://url.madebyjet.dev/${link.alias || link.shortCode}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(displayUrl);
