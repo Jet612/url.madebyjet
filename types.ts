@@ -1,19 +1,12 @@
 export interface ShortenedLink {
   id: string;
+  userId: string;
   originalUrl: string;
   shortCode: string;
-  alias?: string;
-  createdAt: number;
+  alias?: string | null;
   clicks: number;
-  aiTags?: string[];
-  aiSummary?: string;
-}
-
-export interface GeminiAliasResponse {
-  suggestedAlias: string;
-  category: string;
-  summary: string;
-  tags: string[];
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export type SortOption = 'date' | 'clicks';

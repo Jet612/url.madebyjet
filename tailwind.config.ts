@@ -36,7 +36,6 @@ const config: Config = {
         sans: ['Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
         poppins: ['Poppins', 'sans-serif'],
-        playfair: ['Playfair Display', 'serif'],
       },
     },
   },

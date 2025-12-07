@@ -1,46 +1,47 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Link2, Wand2, Loader2, Search, ArrowRight, Github } from 'lucide-react';
+import { Link2, Loader2, Search, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useUser, UserButton } from '@clerk/nextjs';
 
-import { ShortenedLink, SortOption } from '../types';
-import { generateShortCode, isValidUrl } from '../utils/base62';
-import { generateSmartAlias } from '../services/geminiService';
+import { ShortenedLink } from '../types';
+import { isValidUrl } from '../utils/base62';
 import LinkCard from '../components/LinkCard';
 
-const LOCAL_STORAGE_KEY = 'jetshort_links';
-
 export default function Home() {
+  const { isSignedIn, user, isLoaded } = useUser();
   const [url, setUrl] = useState('');
   const [links, setLinks] = useState<ShortenedLink[]>([]);
   const [loading, setLoading] = useState(false);
-  const [aiEnabled, setAiEnabled] = useState(true);
+  const [fetching, setFetching] = useState(false);
   const [filter, setFilter] = useState('');
   const [error, setError] = useState('');
-  const [apiKeyExists, setApiKeyExists] = useState(false);
 
-  // Check for API key on mount
+  // Fetch links from database when user is signed in
   useEffect(() => {
-    setApiKeyExists(!!process.env.NEXT_PUBLIC_GEMINI_API_KEY);
-  }, []);
-
-  // Load from local storage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (saved) {
-      try {
-        setLinks(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse links", e);
-      }
+    if (isLoaded && isSignedIn) {
+      fetchLinks();
+    } else if (isLoaded && !isSignedIn) {
+      setLinks([]);
     }
-  }, []);
+  }, [isLoaded, isSignedIn]);
 
-  // Save to local storage whenever links change
-  useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(links));
-  }, [links]);
+  const fetchLinks = async () => {
+    setFetching(true);
+    try {
+      const response = await fetch('/api/links');
+      if (response.ok) {
+        const data = await response.json();
+        setLinks(data);
+      }
+    } catch (err) {
+      console.error('Error fetching links:', err);
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,87 +56,103 @@ export default function Home() {
     setLoading(true);
 
     try {
-      let aiData = null;
-      
-      // Only try AI if enabled and API key exists
-      if (aiEnabled && process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
-        aiData = await generateSmartAlias(url);
+      const response = await fetch('/api/links', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ originalUrl: url }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create link');
       }
 
-      const newLink: ShortenedLink = {
-        id: crypto.randomUUID(),
-        originalUrl: url,
-        shortCode: generateShortCode(),
-        alias: aiData?.suggestedAlias,
-        createdAt: Date.now(),
-        clicks: 0,
-        aiTags: aiData?.tags,
-        aiSummary: aiData?.summary
-      };
-
+      const newLink = await response.json();
       setLinks(prev => [newLink, ...prev]);
       setUrl('');
-    } catch (err) {
-      console.error(err);
-      setError('Something went wrong. Please try again.');
+    } catch (err: any) {
+      console.error('Full error:', err);
+      // Show more detailed error message
+      const errorMessage = err.message || 'Something went wrong. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = (id: string) => {
-    setLinks(prev => prev.filter(l => l.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      const response = await fetch(`/api/links/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setLinks(prev => prev.filter(l => l.id !== id));
+      }
+    } catch (err) {
+      console.error('Error deleting link:', err);
+    }
   };
 
-  const handleVisit = (id: string) => {
-    setLinks(prev => prev.map(l => 
-      l.id === id ? { ...l, clicks: l.clicks + 1 } : l
-    ));
+  const handleVisit = async (id: string) => {
+    try {
+      await fetch(`/api/links/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ incrementClicks: true }),
+      });
+
+      // Optimistically update the UI
+      setLinks(prev => prev.map(l =>
+        l.id === id ? { ...l, clicks: l.clicks + 1 } : l
+      ));
+    } catch (err) {
+      console.error('Error updating clicks:', err);
+    }
   };
 
-  const filteredLinks = links.filter(link => 
-    link.originalUrl.toLowerCase().includes(filter.toLowerCase()) || 
+  const filteredLinks = links.filter(link =>
+    link.originalUrl.toLowerCase().includes(filter.toLowerCase()) ||
     (link.alias && link.alias.toLowerCase().includes(filter.toLowerCase())) ||
-    (link.aiTags && link.aiTags.some(t => t.toLowerCase().includes(filter.toLowerCase())))
+    link.shortCode.toLowerCase().includes(filter.toLowerCase())
   );
 
   return (
     <div className="min-h-screen bg-custom-gradient font-sans text-slate-100 selection:bg-brand-500/30">
-      
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-white/5 bg-slate-900/50 backdrop-blur-xl">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-lg shadow-brand-500/20">
-              <Link2 className="text-white" size={20} />
-            </div>
-            <span className="font-playfair font-bold text-xl tracking-tight">
+            <img src="https://madebyjet.dev/favicon.png" alt="Logo" width={30} height={30} />
+            <Link href="/" className="font-poppins font-bold text-xl tracking-tighter text-slate-100">
               Jet<span className="text-brand-400">Short</span>
-            </span>
+            </Link>
           </div>
           <div className="flex items-center gap-4">
-             <a 
-              href="https://github.com" 
-              target="_blank" 
-              rel="noreferrer"
-              className="text-slate-400 hover:text-white transition-colors"
-            >
-              <Github size={20} />
-            </a>
+            {isLoaded && isSignedIn && (
+              <>
+                <UserButton afterSignOutUrl="/sign-in" />
+              </>
+            )}
           </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-12">
-        
+
         {/* Hero / Input Section */}
         <section className="mb-16">
           <div className="text-center mb-10">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-brand-200">
-              Shorten Your Links intelligently
+              Shorten Your Links
             </h1>
             <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-              Transform long, ugly URLs into short, memorable brands. Powered by Gemini for smart alias generation.
+              Transform long, ugly URLs into short, memorable links.
             </p>
           </div>
 
@@ -145,24 +162,16 @@ export default function Home() {
               <div className="pl-4 text-slate-500">
                 <Link2 size={20} />
               </div>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="Paste your long link here..."
                 className="flex-1 bg-transparent border-none text-white placeholder-slate-500 focus:ring-0 px-4 py-3 outline-none w-full"
               />
-              
+
               <div className="flex items-center gap-2 pr-2">
-                 <button
-                  type="button"
-                  onClick={() => setAiEnabled(!aiEnabled)}
-                  className={`p-2 rounded-lg transition-all ${aiEnabled ? 'text-brand-400 bg-brand-400/10' : 'text-slate-600 hover:text-slate-400'}`}
-                  title={aiEnabled ? "AI Alias Enabled" : "Enable AI Alias"}
-                >
-                  <Wand2 size={20} />
-                </button>
-                <button 
+                <button
                   type="submit"
                   disabled={loading || !url}
                   className="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-medium transition-all shadow-lg shadow-brand-500/20 flex items-center gap-2"
@@ -186,27 +195,19 @@ export default function Home() {
               </p>
             )}
           </form>
-
-          <div className="mt-4 text-center">
-             {!apiKeyExists && (
-               <p className="text-xs text-yellow-500/80 bg-yellow-500/10 inline-block px-3 py-1 rounded-full border border-yellow-500/20">
-                 Note: No NEXT_PUBLIC_GEMINI_API_KEY found. AI features will be disabled.
-               </p>
-             )}
-          </div>
         </section>
 
         {/* List Section */}
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-            <h2 className="text-2xl font-bold font-playfair flex items-center gap-2">
+            <h2 className="text-2xl font-bold font-poppins flex items-center gap-2">
               Your Links <span className="text-sm font-sans font-normal text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">{links.length}</span>
             </h2>
-            
+
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Search links..."
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
@@ -216,32 +217,38 @@ export default function Home() {
           </div>
 
           <div className="grid gap-4">
-            <AnimatePresence mode="popLayout">
-              {filteredLinks.length > 0 ? (
-                filteredLinks.map((link) => (
-                  <LinkCard 
-                    key={link.id} 
-                    link={link} 
-                    onDelete={handleDelete}
-                    onVisit={handleVisit}
-                  />
-                ))
-              ) : (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center py-20 border-2 border-dashed border-slate-800 rounded-2xl bg-slate-900/20"
-                >
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4 text-slate-600">
-                    <Link2 size={32} />
-                  </div>
-                  <h3 className="text-lg font-medium text-slate-300">No links found</h3>
-                  <p className="text-slate-500 max-w-xs mx-auto mt-2">
-                    Paste a URL above to create your first shortened link.
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {fetching ? (
+              <div className="text-center py-20">
+                <Loader2 className="animate-spin mx-auto text-brand-400" size={32} />
+              </div>
+            ) : (
+              <AnimatePresence mode="popLayout">
+                {filteredLinks.length > 0 ? (
+                  filteredLinks.map((link) => (
+                    <LinkCard
+                      key={link.id}
+                      link={link}
+                      onDelete={handleDelete}
+                      onVisit={handleVisit}
+                    />
+                  ))
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center py-20 border-2 border-dashed border-slate-800 rounded-2xl bg-slate-900/20"
+                  >
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-800 mb-4 text-slate-600">
+                      <Link2 size={32} />
+                    </div>
+                    <h3 className="text-lg font-medium text-slate-300">No links found</h3>
+                    <p className="text-slate-500 max-w-xs mx-auto mt-2">
+                      Paste a URL above to create your first shortened link.
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
           </div>
         </section>
       </main>

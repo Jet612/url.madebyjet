@@ -1,5 +1,5 @@
 {
   "name": "JetShort",
-  "description": "A modern, AI-powered URL shortener featuring custom aliases and intelligent link categorization.",
+  "description": "A modern URL shortener for creating short, memorable links.",
   "requestFramePermissions": []
 }
