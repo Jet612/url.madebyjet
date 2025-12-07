@@ -146,7 +146,9 @@ export default function Home() {
         {/* Hero / Input Section */}
         <section className="mb-16">
           <div className="text-center mb-10">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-brand-200">
+            <h1
+              className="text-4xl md:text-5xl font-bold mb-4 bg-clip-text bg-[linear-gradient(to_right,#ffffff,#e2e8f0,#99f6e4)] text-transparent"
+            >
               Shorten Your Links
             </h1>
             <p className="text-slate-400 text-lg max-w-2xl mx-auto">
@@ -155,7 +157,7 @@ export default function Home() {
           </div>
 
           <form onSubmit={handleSubmit} className="relative max-w-2xl mx-auto group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-brand-500 via-purple-500 to-brand-500 rounded-2xl opacity-30 group-hover:opacity-60 transition duration-500 blur-lg"></div>
+            <div className="absolute -inset-1 bg-[linear-gradient(to_right,#14b8a6,#a855f7,#14b8a6)] rounded-2xl opacity-30 group-hover:opacity-50 transition duration-500 blur-lg"></div>
             <div className="relative bg-slate-900 border border-slate-700 rounded-2xl p-2 flex items-center shadow-2xl">
               <div className="pl-4 text-slate-500">
                 <Link2 size={20} />

@@ -71,7 +71,8 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, onDelete, onVisit }) => {
       className="bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-xl p-5 hover:border-brand-500/30 transition-colors group relative overflow-hidden"
     >
       {/* Decorative gradient blob */}
-      <div className="absolute -top-10 -right-10 w-24 h-24 bg-brand-500/10 rounded-full blur-2xl group-hover:bg-brand-500/20 transition-all duration-500" />
+      <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand-500/20 rounded-full blur-3xl group-hover:bg-brand-500/30 transition-all duration-500" />
+      <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all duration-500" />
 
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 relative z-10">
         <div className="flex-1 min-w-0">
@@ -149,7 +150,6 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, onDelete, onVisit }) => {
                   value={displayUrl}
                   size={120}
                   level="H"
-                  includeMargin={true}
                 />
               </div>
               <p className="text-xs text-slate-400 mt-2 font-mono mb-3">{displayUrl}</p>
