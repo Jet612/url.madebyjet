@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { ShortenedLink } from '../types';
-import { Copy, ExternalLink, BarChart2, Trash2, Check, QrCode } from 'lucide-react';
+import { Copy, ExternalLink, BarChart2, Trash2, Check, QrCode, Download, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 
 interface LinkCardProps {
   link: ShortenedLink;
@@ -13,6 +13,7 @@ interface LinkCardProps {
 const LinkCard: React.FC<LinkCardProps> = ({ link, onDelete, onVisit }) => {
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  const [qrCopied, setQrCopied] = useState(false);
 
   const displayUrl = `https://url.madebyjet.dev/${link.alias || link.shortCode}`;
 
@@ -20,6 +21,40 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, onDelete, onVisit }) => {
     navigator.clipboard.writeText(displayUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const downloadQr = () => {
+    const canvas = document.getElementById(`qr-${link.id}`) as HTMLCanvasElement;
+    if (canvas) {
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.download = `qr-${link.alias || link.shortCode}.png`;
+      a.href = url;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  };
+
+  const copyQrImage = async () => {
+    const canvas = document.getElementById(`qr-${link.id}`) as HTMLCanvasElement;
+    if (canvas) {
+      try {
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            await navigator.clipboard.write([
+              new ClipboardItem({
+                [blob.type]: blob,
+              }),
+            ]);
+            setQrCopied(true);
+            setTimeout(() => setQrCopied(false), 2000);
+          }
+        });
+      } catch (err) {
+        console.error('Failed to copy QR code', err);
+      }
+    }
   };
 
   const handleVisit = () => {
@@ -109,9 +144,32 @@ const LinkCard: React.FC<LinkCardProps> = ({ link, onDelete, onVisit }) => {
           >
             <div className="mt-4 pt-4 border-t border-slate-700/50 flex flex-col items-center justify-center p-4 bg-white/5 rounded-lg">
               <div className="bg-white p-2 rounded-lg">
-                <QRCodeSVG value={displayUrl} size={120} />
+                <QRCodeCanvas
+                  id={`qr-${link.id}`}
+                  value={displayUrl}
+                  size={120}
+                  level="H"
+                  includeMargin={true}
+                />
               </div>
-              <p className="text-xs text-slate-400 mt-2 font-mono">{displayUrl}</p>
+              <p className="text-xs text-slate-400 mt-2 font-mono mb-3">{displayUrl}</p>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={copyQrImage}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 rounded-lg transition-colors border border-slate-700/50 hover:border-brand-500/30"
+                >
+                  {qrCopied ? <Check size={14} className="text-brand-400" /> : <Copy size={14} />}
+                  Copy Image
+                </button>
+                <button
+                  onClick={downloadQr}
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 rounded-lg transition-colors border border-slate-700/50 hover:border-brand-500/30"
+                >
+                  <Download size={14} />
+                  Save
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
