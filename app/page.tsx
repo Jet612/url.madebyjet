@@ -122,21 +122,19 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-custom-gradient font-sans text-slate-100 selection:bg-brand-500/30">
+    <div className="min-h-screen bg-slate-950 font-sans text-slate-100 selection:bg-brand-500/30">
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-white/5 bg-slate-900/50 backdrop-blur-xl">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <header className="py-4">
+        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 font-poppins font-bold text-xl tracking-tighter text-slate-100">
             <img src="https://madebyjet.dev/favicon.png" alt="Logo" width={30} height={30} />
-            <Link href="/" className="font-poppins font-bold text-xl tracking-tighter text-slate-100">
-              Jet<span className="text-brand-400">Short</span>
-            </Link>
-          </div>
+            <span>Jet<span className="text-brand-400">Short</span></span>
+          </Link>
           <div className="flex items-center gap-4">
             {isLoaded && isSignedIn && (
               <>
-                <UserButton afterSignOutUrl="/sign-in" />
+                <UserButton />
               </>
             )}
           </div>
@@ -255,7 +253,8 @@ export default function Home() {
 
       <footer className="border-t border-white/5 mt-20 bg-slate-950 py-8">
         <div className="max-w-4xl mx-auto px-4 text-center text-slate-500 text-sm">
-          <p>© {new Date().getFullYear()} MadeByJet.dev. All rights reserved.</p>
+          <Link href="https://madebyjet.dev" className="text-slate-400 hover:text-brand-400 transition-colors font-poppins font-bold text-lg" target="_blank" rel="noopener noreferrer">Made by Jet</Link>
+          <p>© {new Date().getFullYear()} Jackson Tavares. All rights reserved.</p>
         </div>
       </footer>
     </div>
