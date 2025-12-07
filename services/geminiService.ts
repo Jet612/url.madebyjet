@@ -4,12 +4,13 @@ import { GeminiAliasResponse } from "../types";
 // Initialize Gemini
 // Note: In a production app, never expose API keys on the client side. 
 // This is for demonstration purposes as per the system prompt requirements.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// In Next.js, client-side env vars must use NEXT_PUBLIC_ prefix
+const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || '' });
 
 export const generateSmartAlias = async (url: string): Promise<GeminiAliasResponse | null> => {
   try {
     const model = "gemini-2.5-flash";
-    
+
     const responseSchema: Schema = {
       type: Type.OBJECT,
       properties: {
