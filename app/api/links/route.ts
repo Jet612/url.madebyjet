@@ -44,6 +44,8 @@ export async function POST(request: NextRequest) {
       plan = 'unlimited_urls';
     } else if (authObj.has({ feature: 'generate_up_to_25_links' })) {
       plan = 'generate_up_to_25_links';
+    } else if (user.publicMetadata?.admin === true) {
+      plan = 'unlimited_urls';
     }
     const limit = TIER_LIMITS[plan];
 

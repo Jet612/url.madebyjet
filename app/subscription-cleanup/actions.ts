@@ -14,20 +14,16 @@ export async function getSubscriptionStatus() {
     throw new Error('User not found');
   }
 
-  console.log('[Subscription Status] User ID:', user.id);
-  console.log('[Subscription Status] Has Unlimited URLs:', authObj.has({ feature: 'unlimited_urls' }));
-  console.log('[Subscription Status] Has Generate Up to 25 Links:', authObj.has({ feature: 'generate_up_to_25_links' }));
-
   // Check for features using Clerk billing (B2C)
   let plan: keyof typeof TIER_LIMITS = 'generate_3_urls';
   if (authObj.has({ feature: 'unlimited_urls' })) {
     plan = 'unlimited_urls';
   } else if (authObj.has({ feature: 'generate_up_to_25_links' })) {
     plan = 'generate_up_to_25_links';
+  } else if (user.publicMetadata?.admin === true) {
+    plan = 'unlimited_urls';
   }
   const limit = TIER_LIMITS[plan];
-  console.log('[Subscription Status] Limit:', limit);
-  console.log('[Subscription Status] Plan:', plan);
 
 
   const count = await prisma.shortLink.count({
