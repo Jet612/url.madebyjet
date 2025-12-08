@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
 import { generateShortCode } from '@/utils/base62';
+import { TIER_LIMITS } from '@/lib/constants';
 
 // GET - Fetch all links for the authenticated user
 export async function GET() {
@@ -30,10 +31,36 @@ export async function GET() {
 // POST - Create a new shortened link
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
+    const user = await currentUser();
+    const authObj = await auth();
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check for features using Clerk billing (B2C)
+    let plan: keyof typeof TIER_LIMITS = 'generate_3_urls';
+    if (authObj.has({ feature: 'unlimited_urls' })) {
+      plan = 'unlimited_urls';
+    } else if (authObj.has({ feature: 'generate_up_to_25_links' })) {
+      plan = 'generate_up_to_25_links';
+    }
+    const limit = TIER_LIMITS[plan];
+
+    const count = await prisma.shortLink.count({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    if (count >= limit) {
+      return NextResponse.json(
+        {
+          error: `You have reached your limit of ${limit} links.`,
+          code: 'LIMIT_REACHED'
+        },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
@@ -58,13 +85,13 @@ export async function POST(request: NextRequest) {
     // Generate a unique short code
     let shortCode = alias || generateShortCode();
     let attempts = 0;
-    
+
     // Ensure uniqueness
     while (attempts < 10) {
       const existing = await prisma.shortLink.findUnique({
         where: { shortCode },
       });
-      
+
       if (!existing) break;
       shortCode = generateShortCode();
       attempts++;
@@ -79,7 +106,7 @@ export async function POST(request: NextRequest) {
 
     const link = await prisma.shortLink.create({
       data: {
-        userId,
+        userId: user.id,
         originalUrl,
         shortCode,
         alias: alias || null,
@@ -89,7 +116,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(link);
   } catch (error: any) {
     console.error('Error creating link:', error);
-    
+
     // Check for common Prisma errors
     if (error?.code === 'P1001') {
       return NextResponse.json(
@@ -97,19 +124,19 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-    
+
     if (error?.code === 'P2002') {
       return NextResponse.json(
         { error: 'This short code already exists. Please try again.' },
         { status: 409 }
       );
     }
-    
+
     // Return more detailed error message in development
-    const errorMessage = process.env.NODE_ENV === 'development' 
+    const errorMessage = process.env.NODE_ENV === 'development'
       ? `${error?.message || 'Failed to create link'} (Code: ${error?.code || 'N/A'})`
       : error?.message || 'Failed to create link';
-      
+
     return NextResponse.json(
       { error: errorMessage },
       { status: 500 }

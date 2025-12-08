@@ -6,7 +6,16 @@ import { PostHogProvider } from '../components/PostHogProvider'
 
 export const metadata: Metadata = {
   title: 'JetShort - URL Shortener',
-  description: 'A modern URL shortener for creating short, memorable links.',
+  description: 'A modern URL shortener for creating short, shareable links or generating QR codes.',
+  openGraph: {
+    title: 'JetShort - URL Shortener',
+    description: 'A modern URL shortener for creating short, shareable links or generating QR codes.',
+    images: [
+      {
+        url: 'https://madebyjet.dev/favicon.png',
+      },
+    ],
+  },
   icons: {
     icon: 'https://madebyjet.dev/favicon.png',
   },
@@ -23,7 +32,7 @@ export default function RootLayout({
         theme: dark,
       }}
     >
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <head>
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

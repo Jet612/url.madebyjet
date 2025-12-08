@@ -3,30 +3,47 @@
 import React, { useState, useEffect } from 'react';
 import { Link2, Loader2, Search, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useUser, UserButton } from '@clerk/nextjs';
+import { useUser } from '@clerk/nextjs';
 
 import { ShortenedLink } from '../types';
 import { isValidUrl } from '../utils/base62';
 import LinkCard from '../components/LinkCard';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import { getSubscriptionStatus } from './subscription-cleanup/actions';
 
 export default function Home() {
-  const { isSignedIn, user, isLoaded } = useUser();
+  const { isSignedIn, isLoaded } = useUser();
+  const router = useRouter();
   const [url, setUrl] = useState('');
   const [links, setLinks] = useState<ShortenedLink[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [filter, setFilter] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | React.ReactNode>('');
 
   // Fetch links from database when user is signed in
   useEffect(() => {
     if (isLoaded && isSignedIn) {
+      checkSubscription();
       fetchLinks();
     } else if (isLoaded && !isSignedIn) {
       setLinks([]);
     }
   }, [isLoaded, isSignedIn]);
+
+  const checkSubscription = async () => {
+    try {
+      const status = await getSubscriptionStatus();
+      if (status.isOverLimit) {
+        router.push('/subscription-cleanup');
+      }
+    } catch (err) {
+      console.error('Error checking subscription:', err);
+    }
+  };
 
   const fetchLinks = async () => {
     setFetching(true);
@@ -65,8 +82,18 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create link');
+        const errorData = await response.json();
+
+        if (errorData.code === 'LIMIT_REACHED') {
+          setError(
+            <span>
+              {errorData.error} Please <Link href="/pricing" className="underline hover:text-brand-400 font-medium">upgrade your plan</Link> to create more.
+            </span>
+          );
+          return;
+        }
+
+        throw new Error(errorData.error || 'Failed to create link. Please try again later.');
       }
 
       const newLink = await response.json();
@@ -123,23 +150,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-slate-100 selection:bg-brand-500/30">
-
-      {/* Header */}
-      <header className="py-4">
-        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-poppins font-bold text-xl tracking-tighter text-slate-100">
-            <img src="https://madebyjet.dev/favicon.png" alt="Logo" width={30} height={30} />
-            <span>Jet<span className="text-brand-400">Short</span></span>
-          </Link>
-          <div className="flex items-center gap-4">
-            {isLoaded && isSignedIn && (
-              <>
-                <UserButton />
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <Header variant="default" showPricing={true} />
 
       <main className="max-w-4xl mx-auto px-4 py-12">
 
@@ -190,7 +201,7 @@ export default function Home() {
               </div>
             </div>
             {error && (
-              <p className="absolute -bottom-8 left-4 text-red-400 text-sm animate-pulse">
+              <p className="absolute -bottom-8 left-4 text-red-400 text-sm">
                 {error}
               </p>
             )}
@@ -253,12 +264,7 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-white/5 mt-20 bg-slate-950 py-8">
-        <div className="max-w-4xl mx-auto px-4 text-center text-slate-500 text-sm">
-          <Link href="https://madebyjet.dev" className="text-slate-400 hover:text-brand-400 transition-colors font-poppins font-bold text-lg" target="_blank" rel="noopener noreferrer">Made by Jet</Link>
-          <p>© {new Date().getFullYear()} Jackson Tavares. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
