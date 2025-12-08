@@ -1,11 +1,15 @@
 'use client';
 
 import React from 'react';
-import { PricingTable } from '@clerk/nextjs';
+import { PricingTable, useUser } from '@clerk/nextjs';
+import { AlertTriangle } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
 export default function PricingPage() {
+  const { user } = useUser();
+  const isAdmin = user?.publicMetadata?.admin === true;
+
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-slate-100 selection:bg-brand-500/30">
       <Header variant="default" />
@@ -20,6 +24,15 @@ export default function PricingPage() {
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
             Choose the plan that fits your needs. No hidden fees.
           </p>
+
+          {isAdmin && (
+            <div className="mt-8 inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2 text-amber-500">
+              <AlertTriangle className="w-5 h-5" />
+              <p className="font-medium">
+                You have the admin role, you have the unlimited plan
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Pricing Table */}
