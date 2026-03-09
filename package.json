@@ -19,7 +19,7 @@
     "@prisma/client": "^6.2.1",
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.556.0",
-    "next": "15.1.11",
+    "next": "^15.2.3",
     "posthog-js": "^1.302.2",
     "posthog-node": "^5.17.2",
     "prisma": "^6.2.1",
